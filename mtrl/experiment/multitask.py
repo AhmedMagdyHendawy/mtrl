@@ -175,29 +175,30 @@ class Experiment(experiment.Experiment):
                     start_time = time.time()
                     self.logger.dump(step)
 
-                # evaluate agent periodically
-                if step % exp_config.eval_freq == 0:
-                    self.evaluate_vec_env_of_tasks(
-                        vec_env=self.envs["eval"], step=step, episode=episode
-                    )
-                    if exp_config.save.model:
-                        self.agent.save(
-                            self.model_dir,
-                            step=step,
-                            retain_last_n=exp_config.save.model.retain_last_n,
-                        )
-                    if exp_config.save.buffer.should_save:
-                        self.replay_buffer.save(
-                            self.buffer_dir,
-                            size_per_chunk=exp_config.save.buffer.size_per_chunk,
-                            num_samples_to_save=exp_config.save.buffer.num_samples_to_save,
-                        )
                 episode += 1
                 episode_reward = np.full(shape=vec_env.num_envs, fill_value=0.0)
                 if "success" in self.metrics_to_track:
                     success = np.full(shape=vec_env.num_envs, fill_value=0.0)
 
                 self.logger.log("train/episode", episode, step)
+            
+            # evaluate agent periodically
+            if step % exp_config.eval_freq == 0:
+                self.evaluate_vec_env_of_tasks(
+                    vec_env=self.envs["eval"], step=step, episode=episode
+                )
+                if exp_config.save.model:
+                    self.agent.save(
+                        self.model_dir,
+                        step=step,
+                        retain_last_n=exp_config.save.model.retain_last_n,
+                    )
+                if exp_config.save.buffer.should_save:
+                    self.replay_buffer.save(
+                        self.buffer_dir,
+                        size_per_chunk=exp_config.save.buffer.size_per_chunk,
+                        num_samples_to_save=exp_config.save.buffer.num_samples_to_save,
+                    )
 
             if step < exp_config.init_steps:
                 action = np.asarray(

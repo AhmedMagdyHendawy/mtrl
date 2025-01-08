@@ -19,3 +19,8 @@ date:
 slurm_id:
 debug:
   should_enable: False
+wandb:
+  enable: true
+  job_type: mtsac_z 
+  project: Mode-Connectivity-MTRL
+  entity: literl

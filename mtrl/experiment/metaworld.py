@@ -12,6 +12,7 @@ from mtrl.env.vec_env import VecEnv  # type: ignore[attr-defined]
 from mtrl.experiment import multitask
 from mtrl.utils.types import ConfigType
 
+import wandb
 
 class Experiment(multitask.Experiment):
     """Experiment Class"""
@@ -116,6 +117,7 @@ class Experiment(multitask.Experiment):
         success = (success > 0).astype("float")
         for mode in self.eval_modes_to_env_ids:
             num_envs = len(self.eval_modes_to_env_ids[mode])
+            
             self.logger.log(
                 f"{mode}/episode_reward",
                 episode_reward[start_index : start_index + offset * num_envs].mean(),
@@ -126,30 +128,44 @@ class Experiment(multitask.Experiment):
                 success[start_index : start_index + offset * num_envs].mean(),
                 step,
             )
+
+            if self.config.setup.wandb.enable and not (self.config.env.benchmark._target_ == 'metaworld.MT1'):
+                wandb.log({'all_metaworld/AverageReturn': episode_reward[start_index : start_index + offset * num_envs].mean(),
+                           'all_metaworld/SuccessRate': success[start_index : start_index + offset * num_envs].mean()},
+                           step=step // self.config.experiment.eval_freq, commit=False)
+                
             for _current_env_index, _current_env_id in enumerate(
                 self.eval_modes_to_env_ids[mode]
-            ):
-                self.logger.log(
-                    f"{mode}/episode_reward_env_index_{_current_env_index}",
-                    episode_reward[
+            ):  
+                episode_reward_i = episode_reward[
                         start_index
                         + _current_env_index * offset : start_index
                         + (_current_env_index + 1) * offset
-                    ].mean(),
+                    ].mean()
+                success_rate_i = success[
+                        start_index
+                        + _current_env_index * offset : start_index
+                        + (_current_env_index + 1) * offset
+                    ].mean()
+                self.logger.log(
+                    f"{mode}/episode_reward_env_index_{_current_env_index}",
+                    episode_reward_i,
                     step,
                 )
                 self.logger.log(
                     f"{mode}/success_env_index_{_current_env_index}",
-                    success[
-                        start_index
-                        + _current_env_index * offset : start_index
-                        + (_current_env_index + 1) * offset
-                    ].mean(),
+                    success_rate_i,
                     step,
                 )
                 self.logger.log(
                     f"{mode}/env_index_{_current_env_index}", _current_env_id, step
                 )
+
+                if self.config.setup.wandb.enable:
+                    wandb.log({f'{self.env_metadata["ordered_task_list"][_current_env_id]}/AverageReturn': episode_reward_i,
+                               f'{self.env_metadata["ordered_task_list"][_current_env_id]}/SuccessRate': success_rate_i},
+                            step=step // self.config.experiment.eval_freq, commit=(_current_env_index == num_envs - 1))
+                
             start_index += offset * num_envs
         self.logger.dump(step)
 

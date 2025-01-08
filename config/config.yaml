@@ -17,7 +17,7 @@ defaults:
   - agent/optimizers: ${defaults.0.setup}_critic
   - agent/optimizers: ${defaults.0.setup}_decoder
   - agent/optimizers: ${defaults.0.setup}_encoder
-  - env: ???
+  - env: metaworld-mt10
   - replay_buffer: mtrl
   - logger: mtrl
   - metrics: ${defaults.0.setup}

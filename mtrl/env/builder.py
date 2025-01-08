@@ -58,7 +58,8 @@ def build_metaworld_vec_env(
         "benchmark_name": benchmark_name,
         "env_id_to_task_map": env_id_to_task_map,
         "num_copies_per_env": 1,
-        "should_perform_reward_normalization": True,
+        "should_perform_reward_normalization": config.env.should_perform_reward_normalization,
+        "sample_task_per_episode": config.env.sample_task_per_episode
     }
 
     funcs_to_make_envs, env_id_to_task_map = get_list_of_func_to_make_metaworld_envs(

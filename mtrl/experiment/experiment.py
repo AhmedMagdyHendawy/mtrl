@@ -16,6 +16,7 @@ from mtrl.utils import config as config_utils
 from mtrl.utils import utils, video
 from mtrl.utils.types import ConfigType, EnvMetaDataType, EnvsDictType
 
+import wandb
 
 class Experiment(checkpointable.Checkpointable):
     def __init__(self, config: ConfigType, experiment_id: str = "0"):
@@ -107,6 +108,16 @@ class Experiment(checkpointable.Checkpointable):
             config=self.config,
             retain_logs=should_resume_experiment,
         )
+
+        if self.config.setup.wandb.enable:
+            wandb.init(name=f'seed_{self.config.setup.seed}', 
+                       project=self.config.setup.wandb.project,
+                       group=f"{self.config.env.benchmark._target_.split('.')[-1]}_{self.config.env.benchmark.env_name}" if 'MT1' == self.config.env.benchmark._target_.split('.')[-1] \
+                        else f"{self.config.env.benchmark._target_.replace('.', '_')}",
+                       job_type=self.config.setup.wandb.job_type,
+                       entity=self.config.setup.wandb.entity,
+                       )
+
         self.max_episode_steps = self.env_metadata[
             "max_episode_steps"
         ]  # maximum steps that the agent can take in one environment.
@@ -170,6 +181,9 @@ class Experiment(checkpointable.Checkpointable):
         """Close all the environments."""
         for env in self.envs.values():
             env.close()
+        
+        if self.config.setup.wandb.enable:
+            wandb.finish()
 
 
 def prepare_config(config: ConfigType, env_metadata: EnvMetaDataType) -> ConfigType:
@@ -207,7 +221,7 @@ def get_env_metadata(
     ordered_task_list: Optional[List[str]] = None,
 ) -> EnvMetaDataType:
     """Method to get the metadata from an environment"""
-    dummy_env = env.env_fns[0]().env
+    dummy_env = env.env_fns[0]() #.env
     metadata: EnvMetaDataType = {
         "env_obs_space": dummy_env.observation_space,
         "action_space": dummy_env.action_space,
